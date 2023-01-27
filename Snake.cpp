@@ -152,9 +152,9 @@ int main() {
         snake[0].push_back({height, width});
     }
     // 下面初始化地图，大小为height+1 X width+1
-    game_map.resize(width + 1);
+    game_map.resize(height + 1);
     for (auto&& m : game_map) {
-        m.resize(height + 1);  // 第0行和第0列不使用
+        m.resize(width + 1);  // 第0行和第0列不使用
     }
 
     int obsCnt = input["requests"][(Json::Value::UInt)0]["obstacle"].size();  // 处理障碍物
@@ -164,6 +164,7 @@ int main() {
         int obsY             = input["requests"][(Json::Value::UInt)0]["obstacle"][(Json::Value::UInt)i]["y"].asInt();
         game_map[obsX][obsY] = INT_MIN;  // 将障碍物初始化为INT_MIN
     }
+
     // 根据历史信息恢复现场
     int totalRound = input["responses"].size();
     int dire;

@@ -30,7 +30,6 @@ struct pair_hash {
     std::size_t operator()(std::pair<T1, T2> const& pair) const {
         std::size_t h1 = std::hash<T1>()(pair.first);
         std::size_t h2 = std::hash<T2>()(pair.second);
-
         return h1 ^ h2;
     }
 };
@@ -51,45 +50,45 @@ int GetRandom(int MOD) {  // 生成随机数
     return dis(gen);
 }
 
-Json::Value GameInit() {
-    string str, temp;
-    while (getline(cin, temp)) {
-        str += temp;
-    }
+// Json::Value GameInit() {
+//     string str, temp;
+//     while (getline(cin, temp)) {
+//         str += temp;
+//     }
 
-    Json::Reader reader;
-    Json::Value input;
-    reader.parse(str, input);
-    height = input["requests"][(Json::Value::UInt)0]["height"].asInt();  // 棋盘高度
-    width  = input["requests"][(Json::Value::UInt)0]["width"].asInt();   // 棋盘宽度
-    /*
-    下面开始初始化蛇
-    蛇的初始位置在网格中的左上角(地图位置[1,1])与右下角(地图位置[n,m])
-    */
-    int snakeInit = input["request"][(Json::Value::UInt)0]["x"].asInt();
-    if (snakeInit == 1) {
-        snake[0].push_back({1, 1});
-        snake[1].push_back({height, width});
-    } else {
-        snake[1].push_back({1, 1});
-        snake[0].push_back({height, width});
-    }
-    // 下面初始化地图，大小为height+1 X width+1
-    game_map.resize(height + 1);
-    for (auto&& m : game_map) {
-        m.resize(width + 1);  // 第0行和第0列不使用
-    }
+//     Json::Reader reader;
+//     Json::Value input;
+//     reader.parse(str, input);
+//     height = input["requests"][(Json::Value::UInt)0]["height"].asInt();  // 棋盘高度
+//     width  = input["requests"][(Json::Value::UInt)0]["width"].asInt();   // 棋盘宽度
+//     /*
+//     下面开始初始化蛇
+//     蛇的初始位置在网格中的左上角(地图位置[1,1])与右下角(地图位置[n,m])
+//     */
+//     int snakeInit = input["request"][(Json::Value::UInt)0]["x"].asInt();
+//     if (snakeInit == 1) {
+//         snake[0].push_back({1, 1});
+//         snake[1].push_back({height, width});
+//     } else {
+//         snake[1].push_back({1, 1});
+//         snake[0].push_back({height, width});
+//     }
+//     // 下面初始化地图，大小为height+1 X width+1
+//     game_map.resize(height + 1);
+//     for (auto&& m : game_map) {
+//         m.resize(width + 1);  // 第0行和第0列不使用
+//     }
 
-    int obsCnt = input["requests"][(Json::Value::UInt)0]["obstacle"].size();  // 处理障碍物
+//     int obsCnt = input["requests"][(Json::Value::UInt)0]["obstacle"].size();  // 处理障碍物
 
-    for (int i = 0; i < obsCnt; ++i) {
-        int obsX             = input["requests"][(Json::Value::UInt)0]["obstacle"][(Json::Value::UInt)i]["x"].asInt();
-        int obsY             = input["requests"][(Json::Value::UInt)0]["obstacle"][(Json::Value::UInt)i]["y"].asInt();
-        game_map[obsX][obsY] = INT_MIN;  // 将障碍物初始化为INT_MIN
-    }
+//     for (int i = 0; i < obsCnt; ++i) {
+//         int obsX             = input["requests"][(Json::Value::UInt)0]["obstacle"][(Json::Value::UInt)i]["x"].asInt();
+//         int obsY             = input["requests"][(Json::Value::UInt)0]["obstacle"][(Json::Value::UInt)i]["y"].asInt();
+//         game_map[obsX][obsY] = INT_MIN;  // 将障碍物初始化为INT_MIN
+//     }
 
-    return input;
-}
+//     return input;
+// }
 
 bool isGrow(int round) {
     if (round < 9) return true;
@@ -129,7 +128,42 @@ void SnakeMove(int index, int dir, int round) {  // 编号为index的蛇，向di
 
 int main() {
     vector<int> feasible_dir;  // 暂时用
-    Json::Value input = GameInit();
+
+    string str, temp;
+    while (getline(cin, temp)) {
+        str += temp;
+    }
+
+    Json::Reader reader;
+    Json::Value input;
+    reader.parse(str, input);
+    height = input["requests"][(Json::Value::UInt)0]["height"].asInt();  // 棋盘高度
+    width  = input["requests"][(Json::Value::UInt)0]["width"].asInt();   // 棋盘宽度
+    /*
+    下面开始初始化蛇
+    蛇的初始位置在网格中的左上角(地图位置[1,1])与右下角(地图位置[n,m])
+    */
+    int snakeInit = input["request"][(Json::Value::UInt)0]["x"].asInt();
+    if (snakeInit == 1) {
+        snake[0].push_back({1, 1});
+        snake[1].push_back({height, width});
+    } else {
+        snake[1].push_back({1, 1});
+        snake[0].push_back({height, width});
+    }
+    // 下面初始化地图，大小为height+1 X width+1
+    game_map.resize(width + 1);
+    for (auto&& m : game_map) {
+        m.resize(height + 1);  // 第0行和第0列不使用
+    }
+
+    int obsCnt = input["requests"][(Json::Value::UInt)0]["obstacle"].size();  // 处理障碍物
+
+    for (int i = 0; i < obsCnt; ++i) {
+        int obsX             = input["requests"][(Json::Value::UInt)0]["obstacle"][(Json::Value::UInt)i]["x"].asInt();
+        int obsY             = input["requests"][(Json::Value::UInt)0]["obstacle"][(Json::Value::UInt)i]["y"].asInt();
+        game_map[obsX][obsY] = INT_MIN;  // 将障碍物初始化为INT_MIN
+    }
     // 根据历史信息恢复现场
     int totalRound = input["responses"].size();
     int dire;

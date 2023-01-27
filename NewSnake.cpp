@@ -23,147 +23,148 @@
 #define INT_MIN (-INT_MAX - 1)
 
 using namespace std;
-int n,m;
-const int maxn=25;
-const int dx[4]={-1,0,1,0};
-const int dy[4]={0,1,0,-1};
+
+int n           = -1;  // height指的是X轴,用n代表
+int m           = -1;  // width指Y轴，用m代表
+const int maxn  = 25;
+const int dx[4] = {-1, 0, 1, 0};  // 左、上、右、下
+const int dy[4] = {0, 1, 0, -1};
 bool invalid[maxn][maxn];
 
-struct point
-{
-	int x,y;
-	point(int _x,int _y)
-	{
-		x=_x;
-		y=_y;
-	}
-};
+vector<vector<int>> game_map;    // 地图信息
+deque<pair<int, int>> snake[2];  // snake[0]表示自己的蛇，snake[1]表示对方的蛇
 
-list<point> snake[2]; // 0表示自己的蛇，1表示对方的蛇
+// struct point {
+//     int x, y;
+//     point(int _x, int _y) {
+//         x = _x;
+//         y = _y;
+//     }
+// };
+
+// list<point> snake[2];  // 0表示自己的蛇，1表示对方的蛇
 int possibleDire[10];
 int posCount;
 
-bool isGrow(int round)  //本回合是否生长
-{
-	if (round<=9) return true;
-	if ((round-9)%3==0) return true;
-	return false;
+bool isGrow(int round) {  // 本回合是否生长
+
+    if (round <= 9) return true;
+    if ((round - 9) % 3 == 0) return true;
+    return false;
 }
 
-void deleteEnd(int snake_id)     //删除蛇尾
-{
-	snake[snake_id].pop_back();
+void deleteEnd(int snake_id) {  // 删除蛇尾
+
+    snake[snake_id].pop_back();
 }
 
-void SnakeMove(int snake_id,int dire,int num)  //编号为id的蛇朝向dire方向移动一步
-{
-	point p=*(snake[snake_id].begin());
-	int x=p.x+dx[dire];
-	int y=p.y+dy[dire];
-	snake[snake_id].push_front(point(x,y));
-	if (!isGrow(num))
-		deleteEnd(snake_id);
-}
-void outputSnakeBody(int snake_id)    //调试语句
-{
-	cout<<"Snake No."<<snake_id<<endl;
-	for (list<point>::iterator iter=snake[snake_id].begin();iter!=snake[snake_id].end();++iter)
-		cout<<iter->x<<" "<<iter->y<<endl;
-	cout<<endl;
-}
+void SnakeMove(int snake_id, int dire, int num) {  // 编号为id的蛇朝向dire方向移动一步
 
-bool isBody(int x,int y)   //判断(x,y)位置是否有蛇
-{
-	for (int id=0;id<=1;id++)
-		for (list<point>::iterator iter=snake[id].begin();iter!=snake[id].end();++iter)
-			if (x==iter->x && y==iter->y)
-				return true;
-	return false;
+    int _x = snake[snake_id].front().first;
+    int _y = snake[snake_id].front().second;
+    snake[snake_id].push_front({_x + dx[dire], _y + dy[dire]});
+    if (!isGrow(num)) {
+        deleteEnd(snake_id);
+    }
+}
+void outputSnakeBody(int snake_id) {  // 调试语句
+
+    cout << "Snake No." << snake_id << endl;
+    for (auto&& it = snake[snake_id].begin(); it != snake[snake_id].end(); ++it)
+        cout << it->first << " " << it->second << endl;
+    cout << endl;
 }
 
-bool validDirection(int snake_id,int k)  //判断当前移动方向的下一格是否合法
-{
-	point p=*(snake[snake_id].begin());
-	int x=p.x+dx[k];
-	int y=p.y+dy[k];
-	if (x>n || y>m || x<1 || y<1) return false;
-	if (invalid[x][y]) return false;
-	if (isBody(x,y)) return false;
-	return true;
+bool isBody(pair<int, int> next_dire) {  // 判断(x,y)位置是否有蛇
+
+    int _x = next_dire.first;
+    int _y = next_dire.second;
+    for (int id = 0; id <= 1; id++) {
+        for (auto&& it = snake[id].begin(); it != snake[id].end(); ++it) {
+            if (_x == it->first && _y == it->second)
+                return true;
+        }
+    }
+
+    return false;
 }
 
-int Rand(int p)   //随机生成一个0到p的数字
-{
-	return rand()*rand()*rand()%p;
+bool isObstacle(int snake_id, int k) {  // 判断当前移动方向的下一格是否合法
+
+    int x = snake[snake_id].front().first + dx[k];
+    int y = snake[snake_id].front().second + dy[k];
+    if (x > n || y > m || x < 1 || y < 1) return false;
+    if (invalid[x][y]) return false;
+    if (isBody({x, y})) return false;
+    return true;
 }
 
-int main()
-{
-	memset(invalid,0,sizeof(invalid));
-	string str;
-	string temp;
-	while (getline(cin,temp))
-		str+=temp;
-		
-	Json::Reader reader;
-	Json::Value input;
-	reader.parse(str,input);
+int Rand(int p) {  // 随机生成一个0到p的数字
+    return rand() * rand() * rand() % p;
+}
 
-	n=input["requests"][(Json::Value::UInt) 0]["height"].asInt();  //棋盘高度
-	m=input["requests"][(Json::Value::UInt) 0]["width"].asInt();   //棋盘宽度
+int main() {
+    memset(invalid, 0, sizeof(invalid));
+    string str;
+    string temp;
+    while (getline(cin, temp)) {
+        str += temp;
+    }
 
-	int x=input["requests"][(Json::Value::UInt) 0]["x"].asInt();  //读蛇初始化的信息
-	if (x==1)
-	{
-		snake[0].push_front(point(1,1));
-		snake[1].push_front(point(n,m));
-	}
-	else
-	{
-		snake[1].push_front(point(1,1));
-		snake[0].push_front(point(n,m));
-	}
-	//处理地图中的障碍物
-	int obsCount=input["requests"][(Json::Value::UInt) 0]["obstacle"].size(); 
+    Json::Reader reader;
+    Json::Value input;
+    reader.parse(str, input);
 
-	for (int i=0;i<obsCount;i++)
-	{
-		int ox=input["requests"][(Json::Value::UInt) 0]["obstacle"][(Json::Value::UInt) i]["x"].asInt();
-		int oy=input["requests"][(Json::Value::UInt) 0]["obstacle"][(Json::Value::UInt) i]["y"].asInt();
-		invalid[ox][oy]=1;
-	}
+    n = input["requests"][(Json::Value::UInt)0]["height"].asInt();  // 棋盘高度
+    m = input["requests"][(Json::Value::UInt)0]["width"].asInt();   // 棋盘宽度
 
-	//根据历史信息恢复现场
-	int total=input["responses"].size();
-	
-	int dire;
-	for (int i=0;i<total;i++)
-	{
-		dire=input["responses"][i]["direction"].asInt();
-		SnakeMove(0,dire,i);
+    int x = input["requests"][(Json::Value::UInt)0]["x"].asInt();  // 读蛇初始化的信息
+    if (x == 1) {
+        snake[0].push_front({1, 1});
+        snake[1].push_front({n, m});
+    } else {
+        snake[1].push_front({1, 1});
+        snake[0].push_front({n, m});
+    }
+    // 处理地图中的障碍物
+    int obsCount = input["requests"][(Json::Value::UInt)0]["obstacle"].size();
 
-		dire=input["requests"][i+1]["direction"].asInt();
-		SnakeMove(1,dire,i);	
-	}
+    for (int i = 0; i < obsCount; i++) {
+        int ox          = input["requests"][(Json::Value::UInt)0]["obstacle"][(Json::Value::UInt)i]["x"].asInt();
+        int oy          = input["requests"][(Json::Value::UInt)0]["obstacle"][(Json::Value::UInt)i]["y"].asInt();
+        invalid[ox][oy] = 1;
+    }
 
-	if (!isGrow(total)) // 本回合两条蛇生长
-	{
-		deleteEnd(0);
-		deleteEnd(1);
-	}
-	
-	for (int k=0;k<4;k++)
-		if (validDirection(0,k))
-			possibleDire[posCount++]=k;
-		
-	srand((unsigned)time(0)+total);
+    // 根据历史信息恢复现场
+    int total = input["responses"].size();
 
-	//随机做出一个决策
-	Json::Value ret;
-	ret["response"]["direction"]=possibleDire[rand()%posCount];
+    int dire;
+    for (int i = 0; i < total; i++) {
+        dire = input["responses"][i]["direction"].asInt();
+        SnakeMove(0, dire, i);
 
-	Json::FastWriter writer;
-	cout<<writer.write(ret)<<endl;
+        dire = input["requests"][i + 1]["direction"].asInt();
+        SnakeMove(1, dire, i);
+    }
 
-	return 0;
+    if (!isGrow(total))  // 本回合两条蛇生长
+    {
+        deleteEnd(0);
+        deleteEnd(1);
+    }
+
+    for (int k = 0; k < 4; k++)
+        if (isObstacle(0, k))
+            possibleDire[posCount++] = k;
+
+    srand((unsigned)time(0) + total);
+
+    // 随机做出一个决策
+    Json::Value ret;
+    ret["response"]["direction"] = possibleDire[rand() % posCount];
+
+    Json::FastWriter writer;
+    cout << writer.write(ret) << endl;
+
+    return 0;
 }

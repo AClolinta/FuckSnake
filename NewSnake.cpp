@@ -26,10 +26,9 @@ using namespace std;
 
 int n           = -1;  // height指的是X轴,用n代表
 int m           = -1;  // width指Y轴，用m代表
-const int maxn  = 25;
+
 const int dx[4] = {-1, 0, 1, 0};  // 左、上、右、下
 const int dy[4] = {0, 1, 0, -1};
-bool invalid[maxn][maxn];
 
 vector<vector<int>> game_map;    // 地图信息
 deque<pair<int, int>> snake[2];  // snake[0]表示自己的蛇，snake[1]表示对方的蛇
@@ -94,7 +93,7 @@ bool isObstacle(int snake_id, int k) {  // 判断当前移动方向的下一格�
     int x = snake[snake_id].front().first + dx[k];
     int y = snake[snake_id].front().second + dy[k];
     if (x > n || y > m || x < 1 || y < 1) return false;
-    if (invalid[x][y]) return false;
+    if (game_map[x][y] == INT_MIN) return false;
     if (isBody({x, y})) return false;
     return true;
 }
@@ -104,7 +103,7 @@ int Rand(int p) {  // 随机生成一个0到p的数字
 }
 
 int main() {
-    memset(invalid, 0, sizeof(invalid));
+
     string str;
     string temp;
     while (getline(cin, temp)) {
@@ -118,8 +117,14 @@ int main() {
     n = input["requests"][(Json::Value::UInt)0]["height"].asInt();  // 棋盘高度
     m = input["requests"][(Json::Value::UInt)0]["width"].asInt();   // 棋盘宽度
 
-    int x = input["requests"][(Json::Value::UInt)0]["x"].asInt();  // 读蛇初始化的信息
-    if (x == 1) {
+	// 下面初始化地图，大小为height+1 X width+1
+    game_map.resize(n + 1);
+    for (auto&& _map : game_map) {
+        _map.resize(m + 1);  // 第0行和第0列不使用
+    }
+
+    int snake_init = input["requests"][(Json::Value::UInt)0]["x"].asInt();  // 读蛇初始化的信息
+    if (snake_init == 1) {
         snake[0].push_front({1, 1});
         snake[1].push_front({n, m});
     } else {
@@ -127,12 +132,13 @@ int main() {
         snake[0].push_front({n, m});
     }
     // 处理地图中的障碍物
-    int obsCount = input["requests"][(Json::Value::UInt)0]["obstacle"].size();
+    int obsCnt = input["requests"][(Json::Value::UInt)0]["obstacle"].size();
 
-    for (int i = 0; i < obsCount; i++) {
-        int ox          = input["requests"][(Json::Value::UInt)0]["obstacle"][(Json::Value::UInt)i]["x"].asInt();
-        int oy          = input["requests"][(Json::Value::UInt)0]["obstacle"][(Json::Value::UInt)i]["y"].asInt();
-        invalid[ox][oy] = 1;
+    for (int i = 0; i < obsCnt; i++) {
+        int _x          = input["requests"][(Json::Value::UInt)0]["obstacle"][(Json::Value::UInt)i]["x"].asInt();
+        int _y          = input["requests"][(Json::Value::UInt)0]["obstacle"][(Json::Value::UInt)i]["y"].asInt();
+
+		game_map[_x][_y] = INT_MIN;
     }
 
     // 根据历史信息恢复现场

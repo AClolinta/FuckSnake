@@ -16,6 +16,11 @@ vector<vector<int>> game_map;      // 地图信息
 deque<pair<int, int>> snake[2];    // snake[0]表示自己的蛇，snake[1]表示对方的蛇
 vector<pair<int, int>> obstacles;  // 障碍物
 
+//test
+vector<int> test;
+int ttcnt=1;
+
+//test
 int possibleDire[10];
 int posCount;
 
@@ -77,16 +82,15 @@ void BFS(pair<int, int> node, vector<vector<bool>>& visited) {
             }
         }
     }
-    return;
 }
 
-int GetConnectComponent(pair<int, int> node = {-1, -1}) {  // 不传参数就是计算当前联通分量，传参就是计算预计移动的方向的联通分量
+int GetConnectComponent(pair<int, int> node, bool flag = false) {  // 传flag参数就是计算当前联通分量，不传参就是计算预计移动的方向的联通分量
 
     vector<vector<bool>> visited(n + 1, vector<bool>(m + 1, false));  // 标记访问地块
-    int connect_component = 1;
+    int connect_component = 0;
 
     // 检查的预测还是普通计算
-    if (node.first != -1 || node.second != -1) {
+    if (flag) {
         // 先标记预计移动方向为已经访问过的地块（相当于是蛇身）
         visited[node.first][node.second] = true;
     }
@@ -96,14 +100,14 @@ int GetConnectComponent(pair<int, int> node = {-1, -1}) {  // 不传参数就是
     }
     // 标记蛇身为障碍物
     for (int id = 0; id <= 1; id++) {
-        for (auto&& it = snake[id].begin(); it < snake[id].end(); ++it) {
+        for (auto&& it = snake[id].begin(); it != snake[id].end(); ++it) {
             visited[it->first][it->second] = true;
         }
     }
 
     // 遍历每一个地块
-    for (size_t i = 0; i != visited.size(); ++i) {
-        for (size_t j = 0; j != visited.front().size(); ++j) {
+    for (size_t i = 1; i != visited.size(); ++i) {
+        for (size_t j = 1; j != visited.front().size(); ++j) {
             if (visited[i][j] == true || game_map[i][j] == INT_MIN) continue;  // 跳过障碍物以及已经访问过的地块
             /*每一次的BFS都会找到一个连通分量*/
             BFS({i, j}, visited);
@@ -138,17 +142,18 @@ void outputSnakeBody(int snake_id) {  // 调试语句
 
 int FinalDecision() {
     vector<int> feasible_dir;
-    int this_round_connect_component = GetConnectComponent();
+    int this_round_connect_component = GetConnectComponent({-1, -1});
     // 先检查前进方向是否合法
     for (int i = 0; i < 4; ++i) {
-        if (isObstacle(0, i)) {//先检查边界
-            if (GetConnectComponent({snake[0].front().first + dx[i], snake[0].front().first + dy[i]}) == this_round_connect_component) {
+        if (isObstacle(0, i)) {  // 先检查边界
+            if (GetConnectComponent({snake[0].front().first + dx[i], snake[0].front().first + dy[i]}, true) == this_round_connect_component) {
                 feasible_dir.push_back(i);
             }
         }
     }
     // || GetConnectComponent({snake[0].front().first + dx[i], snake[0].front().first + dy[i]}) != this_round_connect_component
     return feasible_dir[Random(feasible_dir.size() - 1)];
+    // return this_round_connect_component ;
 }
 
 int main() {
@@ -201,13 +206,10 @@ int main() {
         SnakeMove(1, recover_dire, i);
     }
 
-    if (!isGrow(total))  // 本回合两条蛇生长
-    {
+    if (!isGrow(total)) {  // 本回合两条蛇生长
         RemoveSnakeTail(0);
         RemoveSnakeTail(1);
     }
-
-    srand((unsigned)time(0) + total);
 
     int decide_dir = FinalDecision();
 

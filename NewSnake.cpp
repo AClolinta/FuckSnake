@@ -4,9 +4,6 @@
 
 #include "jsoncpp/json.h"
 
-#define INT_MAX 2147483647  // 系统连这个宏定义都没有,无语
-#define INT_MIN (-INT_MAX - 1)
-
 using namespace std;
 
 int n = -1;  // height指的是X轴,用n代表
@@ -15,8 +12,9 @@ int m = -1;  // width指Y轴，用m代表
 const int dx[4] = {-1, 0, 1, 0};  // 左、上、右、下
 const int dy[4] = {0, 1, 0, -1};
 
-vector<vector<int>> game_map;    // 地图信息
-deque<pair<int, int>> snake[2];  // snake[0]表示自己的蛇，snake[1]表示对方的蛇
+vector<vector<int>> game_map;      // 地图信息
+deque<pair<int, int>> snake[2];    // snake[0]表示自己的蛇，snake[1]表示对方的蛇
+vector<pair<int, int>> obstacles;  // 障碍物
 
 int possibleDire[10];
 int posCount;
@@ -31,39 +29,17 @@ bool isGrow(int round) {  // 本回合是否生长
     return false;
 }
 
-void RemoveSnakeTail(int snake_id) {  // 删除蛇尾
-
-    snake[snake_id].pop_back();
-}
-
-void SnakeMove(int snake_id, int dire, int num) {  // 编号为id的蛇朝向dire方向移动一步
-
-    int _x = snake[snake_id].front().first;
-    int _y = snake[snake_id].front().second;
-    snake[snake_id].push_front({_x + dx[dire], _y + dy[dire]});
-    if (!isGrow(num)) {
-        RemoveSnakeTail(snake_id);
-    }
-}
-void outputSnakeBody(int snake_id) {  // 调试语句
-
-    cout << "Snake No." << snake_id << endl;
-    for (auto&& it = snake[snake_id].begin(); it != snake[snake_id].end(); ++it)
-        cout << it->first << " " << it->second << endl;
-    cout << endl;
-}
-
 bool isBody(pair<int, int> next_dire) {  // 判断(x,y)位置是否有蛇
 
     int _x = next_dire.first;
     int _y = next_dire.second;
     for (int id = 0; id <= 1; id++) {
-        for (auto&& it = snake[id].begin(); it != snake[id].end(); ++it) {
-            if (_x == it->first && _y == it->second)
+        for (auto&& it = snake[id].begin(); it < snake[id].end(); ++it) {
+            if (_x == it->first && _y == it->second) {
                 return true;
+            }
         }
     }
-
     return false;
 }
 
@@ -83,14 +59,95 @@ int Random(int MOD) {  // 随机生成一个随机数
     return dist(mt);
 }
 
-int FinalDecision() {
-    vector<int> feasible_dir;
-    // 先检查前进方向是否合法
-    for (int i = 0; i < 4; ++i) {
-        if (isObstacle(0, i)) {
-            feasible_dir.push_back(i);
+void BFS(pair<int, int> node, vector<vector<bool>>& visited) {
+    // 每一次会遍历一个连通分量
+    queue<pair<int, int>> q;
+    q.push(node);
+    visited[node.first][node.second] = true;  // 标记访问过的地块
+    while (!q.empty()) {
+        auto _node = q.front();
+        q.pop();  // 头部节点出列
+        for (int i = 0; i < 4; ++i) {
+            int _x = dx[i] + _node.first;
+            int _y = dy[i] + _node.second;
+            if (_x <= n && _y <= m && _x >= 1 && _y >= 1 && visited[_x][_y] == false) {
+                // 判断越界以及是否访问过
+                q.push({_x, _y});
+                visited[_x][_y] = true;  // 标记访问地块
+            }
         }
     }
+    return;
+}
+
+int GetConnectComponent(pair<int, int> node = {-1, -1}) {  // 不传参数就是计算当前联通分量，传参就是计算预计移动的方向的联通分量
+
+    vector<vector<bool>> visited(n + 1, vector<bool>(m + 1, false));  // 标记访问地块
+    int connect_component = 1;
+
+    // 检查的预测还是普通计算
+    if (node.first != -1 || node.second != -1) {
+        // 先标记预计移动方向为已经访问过的地块（相当于是蛇身）
+        visited[node.first][node.second] = true;
+    }
+    // 标记障碍物地块
+    for (auto&& _obstacle : obstacles) {
+        visited[_obstacle.first][_obstacle.second] = true;
+    }
+    // 标记蛇身为障碍物
+    for (int id = 0; id <= 1; id++) {
+        for (auto&& it = snake[id].begin(); it < snake[id].end(); ++it) {
+            visited[it->first][it->second] = true;
+        }
+    }
+
+    // 遍历每一个地块
+    for (size_t i = 0; i != visited.size(); ++i) {
+        for (size_t j = 0; j != visited.front().size(); ++j) {
+            if (visited[i][j] == true || game_map[i][j] == INT_MIN) continue;  // 跳过障碍物以及已经访问过的地块
+            /*每一次的BFS都会找到一个连通分量*/
+            BFS({i, j}, visited);
+            ++connect_component;
+        }
+    }
+
+    return connect_component;
+}
+
+void RemoveSnakeTail(int snake_id) {  // 删除蛇尾
+
+    snake[snake_id].pop_back();
+}
+
+void SnakeMove(int snake_id, int dire, int num) {  // 编号为id的蛇朝向dire方向移动一步
+
+    int _x = snake[snake_id].front().first;
+    int _y = snake[snake_id].front().second;
+    snake[snake_id].push_front({_x + dx[dire], _y + dy[dire]});
+    if (!isGrow(num)) {
+        RemoveSnakeTail(snake_id);
+    }
+}
+void outputSnakeBody(int snake_id) {  // 调试语句
+
+    cout << "Snake" << snake_id << endl;
+    for (auto&& it = snake[snake_id].begin(); it < snake[snake_id].end(); ++it)
+        cout << it->first << " " << it->second << endl;
+    cout << endl;
+}
+
+int FinalDecision() {
+    vector<int> feasible_dir;
+    int this_round_connect_component = GetConnectComponent();
+    // 先检查前进方向是否合法
+    for (int i = 0; i < 4; ++i) {
+        if (isObstacle(0, i)) {//先检查边界
+            if (GetConnectComponent({snake[0].front().first + dx[i], snake[0].front().first + dy[i]}) == this_round_connect_component) {
+                feasible_dir.push_back(i);
+            }
+        }
+    }
+    // || GetConnectComponent({snake[0].front().first + dx[i], snake[0].front().first + dy[i]}) != this_round_connect_component
     return feasible_dir[Random(feasible_dir.size() - 1)];
 }
 
@@ -129,6 +186,7 @@ int main() {
         int _x           = input["requests"][(Json::Value::UInt)0]["obstacle"][(Json::Value::UInt)i]["x"].asInt();
         int _y           = input["requests"][(Json::Value::UInt)0]["obstacle"][(Json::Value::UInt)i]["y"].asInt();
         game_map[_x][_y] = INT_MIN;
+        obstacles.push_back({_x, _y});  // 记录障碍物
     }
 
     // 根据历史信息恢复现场

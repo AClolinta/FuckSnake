@@ -16,16 +16,31 @@ vector<vector<int>> game_map;      // 地图信息
 deque<pair<int, int>> snake[2];    // snake[0]表示自己的蛇，snake[1]表示对方的蛇
 vector<pair<int, int>> obstacles;  // 障碍物
 
-//test
+// test
 vector<int> test;
-int ttcnt=1;
+int ttcnt = 1;
 
-//test
+// test
 int possibleDire[10];
 int posCount;
 
 random_device rd;
 mt19937 mt(rd());
+
+int Random(int MOD) {  // 随机生成一个随机数
+
+    uniform_int_distribution<int> dist(0, MOD);
+    return dist(mt);
+}
+
+bool CmpDownByConnectComp(vector<int> a, vector<int> b) {
+    // 按照连通分量降序
+    if (a[1] == b[1]) {
+        // 连通分量相同,随机
+        return Random(1) == 1;
+    }
+    return a[1] < b[1];
+}
 
 bool isGrow(int round) {  // 本回合是否生长
 
@@ -56,12 +71,6 @@ bool isObstacle(int snake_id, int k) {  // 判断当前移动方向的下一格�
     if (game_map[x][y] == INT_MIN) return false;
     if (isBody({x, y})) return false;  // 判断是否接触蛇身
     return true;
-}
-
-int Random(int MOD) {  // 随机生成一个随机数
-
-    uniform_int_distribution<int> dist(0, MOD);
-    return dist(mt);
 }
 
 void BFS(pair<int, int> node, vector<vector<bool>>& visited) {
@@ -141,18 +150,20 @@ void outputSnakeBody(int snake_id) {  // 调试语句
 }
 
 int FinalDecision() {
-    vector<int> feasible_dir;
-    int this_round_connect_component = GetConnectComponent({-1, -1});
+    // vector<vector<int>> feasible_dir;
+    map<int,int>feasible_dir;
+    /*feasible_dir[] = {移动方向，联通分量}*/
+    // int this_round_connect_component = GetConnectComponent({-1, -1});
     // 先检查前进方向是否合法
     for (int i = 0; i < 4; ++i) {
         if (isObstacle(0, i)) {  // 先检查边界
-            if (GetConnectComponent({snake[0].front().first + dx[i], snake[0].front().first + dy[i]}, true) == this_round_connect_component) {
-                feasible_dir.push_back(i);
-            }
+            int forecast_connect_component = GetConnectComponent({snake[0].front().first + dx[i], snake[0].front().first + dy[i]}, true);
+            feasible_dir[forecast_connect_component]=i ;
         }
     }
+    // 排序做决策
     // || GetConnectComponent({snake[0].front().first + dx[i], snake[0].front().first + dy[i]}) != this_round_connect_component
-    return feasible_dir[Random(feasible_dir.size() - 1)];
+    return feasible_dir.begin()->second;
     // return this_round_connect_component ;
 }
 

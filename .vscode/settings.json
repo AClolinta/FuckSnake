@@ -27,6 +27,9 @@
         "fstream": "cpp",
         "sstream": "cpp",
         "utility": "cpp",
-        "cstring": "cpp"
+        "cstring": "cpp",
+        "exception": "cpp",
+        "iosfwd": "cpp",
+        "type_traits": "cpp"
     }
 }

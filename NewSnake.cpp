@@ -97,6 +97,7 @@ int BFS(pair<int, int> node, vector<vector<bool>>& visited) {
     return cnt;
 }
 
+
 int GetGridCount(pair<int, int> node) {
     // 计算当前节点BFS的格子数量
     vector<vector<bool>> visited(n + 1, vector<bool>(m + 1, false));  // 初始化标记访问地块
@@ -193,14 +194,15 @@ int FinalDecision() {
     for (auto&& _dir : feasible_dir) {
         if (_dir.back() == min_connect_comp) {
             int _dire = _dir.front();
-            grid_cnts.push_back({_dire, GetGridCount({snake[0].front().first + dx[_dire], snake[0].front().first + dy[_dire]})});
+            pair<int, int> next_node = {snake[0].front().first + dx[_dire], snake[0].front().second + dy[_dire]};
+            grid_cnts.push_back({_dire, GetGridCount(next_node)});
         }
     }
     int max_grid_cnt = INT_MIN, max_grid_cnt_index = -1;
     for (size_t i = 0; i < grid_cnts.size(); ++i) {
         if (grid_cnts[i][1] > max_grid_cnt) {
             max_grid_cnt_index = grid_cnts[i][0];
-            max_grid_cnt = max(max_grid_cnt,grid_cnts[i][1]);
+            max_grid_cnt       = max(max_grid_cnt, grid_cnts[i][1]);
         }
     }
 
@@ -273,7 +275,7 @@ int main() {
     ret["response"]["direction"] = decide_dir;
 
     Json::FastWriter writer;
-    cout << writer.write(ret) << endl;
+    std::cout << writer.write(ret) << endl;
 
     return 0;
 }

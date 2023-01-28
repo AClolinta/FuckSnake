@@ -1,3 +1,4 @@
 *.exe
 snake.exe
 test.cpp
+.vscode/settings.json

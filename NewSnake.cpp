@@ -162,7 +162,7 @@ int GetConnectComponent(pair<int, int> node, bool flag = false) {  // 传flag参
 vector<int> AvoidDeadEnds(vector<vector<int>>& feasible_dir) {  // 返回多个值代表他们的连通分量和格子都相等
 
     int min_connect_comp = feasible_dir.front().back();
-    // 将联通分量不是最小的扔掉
+    // 试图将联通分量不是最小的扔掉
     vector<vector<int>> grid_cnts;  //[index,grid_cnt]
     for (auto&& _dir : feasible_dir) {
         if (_dir.back() == min_connect_comp) {
@@ -171,6 +171,7 @@ vector<int> AvoidDeadEnds(vector<vector<int>>& feasible_dir) {  // 返回多个�
             grid_cnts.push_back({_dire, GetGridCount(next_node)});
         }
     }
+
     int max_grid_cnt = INT_MIN, max_grid_cnt_index = -1;
     for (size_t i = 0; i < grid_cnts.size(); ++i) {
         if (grid_cnts[i][1] > max_grid_cnt) {

@@ -74,7 +74,6 @@ bool isObstacle(int snake_id, int k) {  // 判断当前移动方向的下一格�
     return true;
 }
 
-
 int BFS(pair<int, int> node, vector<vector<bool>>& visited) {
     // 每一次会遍历一个连通分量
     int cnt = 1;
@@ -164,10 +163,10 @@ void SnakeMove(int snake_id, int dire, int num) {  // 编号为id的蛇朝向dir
 }
 void outputSnakeBody(int snake_id) {  // 调试语句
 
-    cout << "Snake" << snake_id << endl;
+    std::cout << "Snake" << snake_id << endl;
     for (auto&& it = snake[snake_id].begin(); it < snake[snake_id].end(); ++it)
-        cout << it->first << " " << it->second << endl;
-    cout << endl;
+        std::cout << it->first << " " << it->second << endl;
+    std::cout << endl;
 }
 
 int FinalDecision() {
@@ -189,25 +188,22 @@ int FinalDecision() {
 
     // 处理连通分量相等的情况
     int min_connect_comp = feasible_dir.front().back();
-
-    vector<int> equal_connect_comp_dire, equal_connect_comp_dire_grid_cnt;
-    // unordered_map<int,int> equal_connect_comp_dire_grid_cnt;//[方向，格子数量]
-    for (auto&& _feasible_dir : feasible_dir) {
-        if (_feasible_dir.back() == min_connect_comp) {
-            // 把方向送进去
-            int _dire = _feasible_dir.front();
-            equal_connect_comp_dire.push_back(_dire);
-            equal_connect_comp_dire_grid_cnt.push_back(GetGridCount({snake[0].front().first + dx[_dire], snake[0].front().first + dy[_dire]}));
+    // 将联通分量不是最小的扔掉
+    vector<vector<int>> grid_cnts;  //[index,grid_cnt]
+    for (auto&& _dir : feasible_dir) {
+        if (_dir.back() == min_connect_comp) {
+            int _dire = _dir.front();
+            grid_cnts.push_back({_dire, GetGridCount({snake[0].front().first + dx[_dire], snake[0].front().first + dy[_dire]})});
         }
     }
-    // 把格子最多的方向弄出来
     int max_grid_cnt = INT_MIN, max_grid_cnt_index = -1;
-    for (size_t i=0; i!=equal_connect_comp_dire_grid_cnt.size(); ++i) {
-        if (equal_connect_comp_dire_grid_cnt[i] >= max_grid_cnt) {//取最大值
-            max_grid_cnt = max(max_grid_cnt, equal_connect_comp_dire_grid_cnt[i]);
-            max_grid_cnt_index = i;
+    for (size_t i = 0; i < grid_cnts.size(); ++i) {
+        if (grid_cnts[i][1] > max_grid_cnt) {
+            max_grid_cnt_index = grid_cnts[i][0];
+            max_grid_cnt = max(max_grid_cnt,grid_cnts[i][1]);
         }
     }
+
     //
     return max_grid_cnt_index;
 

@@ -9,7 +9,7 @@ using namespace std;
 int n = -1;  // height指的是X轴,用n代表
 int m = -1;  // width指Y轴，用m代表
 
-const int dx[4] = {-1, 0, 1, 0};  // 左、上、右、下
+const int dx[4] = {-1, 0, 1, 0};  // 左、下、右、上
 const int dy[4] = {0, 1, 0, -1};
 
 vector<vector<int>> game_map;      // 地图信息
@@ -33,7 +33,7 @@ int Random(int MOD) {  // 随机生成一个随机数
     return dist(mt);
 }
 
-bool CmpDownByConnectComp(vector<int> a, vector<int> b) {
+bool CmpDownByConnectComp(vector<int>& a, vector<int>& b) {
     // 按照连通分量降序
     if (a[1] == b[1]) {
         // 连通分量相同,随机
@@ -150,20 +150,25 @@ void outputSnakeBody(int snake_id) {  // 调试语句
 }
 
 int FinalDecision() {
-    // vector<vector<int>> feasible_dir;
-    map<int,int>feasible_dir;
+    vector<vector<int>> feasible_dir;
+    // map<int,int>feasible_dir;
     /*feasible_dir[] = {移动方向，联通分量}*/
     // int this_round_connect_component = GetConnectComponent({-1, -1});
+
     // 先检查前进方向是否合法
     for (int i = 0; i < 4; ++i) {
         if (isObstacle(0, i)) {  // 先检查边界
             int forecast_connect_component = GetConnectComponent({snake[0].front().first + dx[i], snake[0].front().first + dy[i]}, true);
-            feasible_dir[forecast_connect_component]=i ;
+            // feasible_dir[forecast_connect_component]=i ;
+            feasible_dir.push_back({i, forecast_connect_component});
         }
     }
     // 排序做决策
-    // || GetConnectComponent({snake[0].front().first + dx[i], snake[0].front().first + dy[i]}) != this_round_connect_component
-    return feasible_dir.begin()->second;
+    std::sort(feasible_dir.begin(), feasible_dir.end(), CmpDownByConnectComp);
+
+    return feasible_dir.front().front();
+
+    // return feasible_dir.begin()->second;
     // return this_round_connect_component ;
 }
 

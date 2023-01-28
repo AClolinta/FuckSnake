@@ -15,10 +15,8 @@ const int dy[4] = {0, 1, 0, -1};
 vector<vector<int>> game_map;      // 地图信息
 deque<pair<int, int>> snake[2];    // snake[0]表示自己的蛇，snake[1]表示对方的蛇
 vector<pair<int, int>> obstacles;  // 障碍物
-
-// test
-vector<int> test;
-int ttcnt = 1;
+unordered_set<int> random_dir;
+vector<int> random_dir_arr;
 
 // test
 int possibleDire[10];
@@ -31,6 +29,20 @@ int Random(int MOD) {  // 随机生成一个随机数
 
     uniform_int_distribution<int> dist(0, MOD);
     return dist(mt);
+}
+
+void GetRandomDir() {
+    // 生成四个随机的方向
+    while (random_dir.size() != 4) {
+        int _num = Random(100) % 4;
+        if (random_dir.count(_num) == 0) {
+            random_dir.insert(_num);
+        }
+    }
+    for (auto&& it = random_dir.begin(); it != random_dir.end(); ++it) {
+        random_dir_arr.push_back(*it);
+    }
+    return;
 }
 
 bool CmpDownByConnectComp(vector<int>& a, vector<int>& b) {
@@ -97,7 +109,6 @@ int BFS(pair<int, int> node, vector<vector<bool>>& visited) {
     return cnt;
 }
 
-
 int GetGridCount(pair<int, int> node) {
     // 计算当前节点BFS的格子数量
     vector<vector<bool>> visited(n + 1, vector<bool>(m + 1, false));  // 初始化标记访问地块
@@ -148,6 +159,29 @@ int GetConnectComponent(pair<int, int> node, bool flag = false) {  // 传flag参
     return connect_component;
 }
 
+vector<int> AvoidDeadEnds(vector<vector<int>>& feasible_dir) {  // 返回多个值代表他们的连通分量和格子都相等
+
+    int min_connect_comp = feasible_dir.front().back();
+    // 将联通分量不是最小的扔掉
+    vector<vector<int>> grid_cnts;  //[index,grid_cnt]
+    for (auto&& _dir : feasible_dir) {
+        if (_dir.back() == min_connect_comp) {
+            int _dire                = _dir.front();
+            pair<int, int> next_node = {snake[0].front().first + dx[_dire], snake[0].front().second + dy[_dire]};
+            grid_cnts.push_back({_dire, GetGridCount(next_node)});
+        }
+    }
+    int max_grid_cnt = INT_MIN, max_grid_cnt_index = -1;
+    for (size_t i = 0; i < grid_cnts.size(); ++i) {
+        if (grid_cnts[i][1] > max_grid_cnt) {
+            max_grid_cnt_index = grid_cnts[i][0];
+            max_grid_cnt       = max(max_grid_cnt, grid_cnts[i][1]);
+        }
+    }
+
+    return {max_grid_cnt_index};
+}
+
 void RemoveSnakeTail(int snake_id) {  // 删除蛇尾
 
     snake[snake_id].pop_back();
@@ -172,12 +206,13 @@ void outputSnakeBody(int snake_id) {  // 调试语句
 
 int FinalDecision() {
     vector<vector<int>> feasible_dir;
+    GetRandomDir();
     // map<int,int>feasible_dir;
     /*feasible_dir[] = {移动方向，联通分量}*/
     // int this_round_connect_component = GetConnectComponent({-1, -1});
 
     // 先检查前进方向是否合法
-    for (int i = 0; i < 4; ++i) {
+    for (int i : random_dir_arr) {
         if (isObstacle(0, i)) {  // 先检查边界
             int forecast_connect_component = GetConnectComponent({snake[0].front().first + dx[i], snake[0].front().first + dy[i]}, true);
             // feasible_dir[forecast_connect_component]=i ;
@@ -188,26 +223,10 @@ int FinalDecision() {
     std::sort(feasible_dir.begin(), feasible_dir.end(), CmpDownByConnectComp);
 
     // 处理连通分量相等的情况
-    int min_connect_comp = feasible_dir.front().back();
-    // 将联通分量不是最小的扔掉
-    vector<vector<int>> grid_cnts;  //[index,grid_cnt]
-    for (auto&& _dir : feasible_dir) {
-        if (_dir.back() == min_connect_comp) {
-            int _dire = _dir.front();
-            pair<int, int> next_node = {snake[0].front().first + dx[_dire], snake[0].front().second + dy[_dire]};
-            grid_cnts.push_back({_dire, GetGridCount(next_node)});
-        }
-    }
-    int max_grid_cnt = INT_MIN, max_grid_cnt_index = -1;
-    for (size_t i = 0; i < grid_cnts.size(); ++i) {
-        if (grid_cnts[i][1] > max_grid_cnt) {
-            max_grid_cnt_index = grid_cnts[i][0];
-            max_grid_cnt       = max(max_grid_cnt, grid_cnts[i][1]);
-        }
-    }
+    auto max_grid_cnt_index = AvoidDeadEnds(feasible_dir);
 
     //
-    return max_grid_cnt_index;
+    return max_grid_cnt_index.front();
 
     // return feasible_dir.begin()->second;
     // return this_round_connect_component ;

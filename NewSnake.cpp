@@ -37,7 +37,8 @@ bool CmpDownByConnectComp(vector<int>& a, vector<int>& b) {
     // 按照连通分量降序
     if (a[1] == b[1]) {
         // 连通分量相同,随机
-        return Random(1) == 1;
+        // 排序需要满足自反，不得使用随机函数
+        return a[0] > b[0];
     }
     return a[1] < b[1];
 }
@@ -73,8 +74,10 @@ bool isObstacle(int snake_id, int k) {  // 判断当前移动方向的下一格�
     return true;
 }
 
-void BFS(pair<int, int> node, vector<vector<bool>>& visited) {
+
+int BFS(pair<int, int> node, vector<vector<bool>>& visited) {
     // 每一次会遍历一个连通分量
+    int cnt = 1;
     queue<pair<int, int>> q;
     q.push(node);
     visited[node.first][node.second] = true;  // 标记访问过的地块
@@ -88,9 +91,27 @@ void BFS(pair<int, int> node, vector<vector<bool>>& visited) {
                 // 判断越界以及是否访问过
                 q.push({_x, _y});
                 visited[_x][_y] = true;  // 标记访问地块
+                ++cnt;
             }
         }
     }
+    return cnt;
+}
+
+int GetGridCount(pair<int, int> node) {
+    // 计算当前节点BFS的格子数量
+    vector<vector<bool>> visited(n + 1, vector<bool>(m + 1, false));  // 初始化标记访问地块
+    // 标记障碍物地块
+    for (auto&& _obstacle : obstacles) {
+        visited[_obstacle.first][_obstacle.second] = true;
+    }
+    // 标记蛇身为障碍物
+    for (int id = 0; id <= 1; id++) {
+        for (auto&& it = snake[id].begin(); it != snake[id].end(); ++it) {
+            visited[it->first][it->second] = true;
+        }
+    }
+    return BFS(node, visited);
 }
 
 int GetConnectComponent(pair<int, int> node, bool flag = false) {  // 传flag参数就是计算当前联通分量，不传参就是计算预计移动的方向的联通分量
@@ -119,7 +140,7 @@ int GetConnectComponent(pair<int, int> node, bool flag = false) {  // 传flag参
         for (size_t j = 1; j != visited.front().size(); ++j) {
             if (visited[i][j] == true || game_map[i][j] == INT_MIN) continue;  // 跳过障碍物以及已经访问过的地块
             /*每一次的BFS都会找到一个连通分量*/
-            BFS({i, j}, visited);
+            int _ = BFS({i, j}, visited);  // 返回值在这里没用
             ++connect_component;
         }
     }
@@ -166,7 +187,29 @@ int FinalDecision() {
     // 排序做决策
     std::sort(feasible_dir.begin(), feasible_dir.end(), CmpDownByConnectComp);
 
-    return feasible_dir.front().front();
+    // 处理连通分量相等的情况
+    int min_connect_comp = feasible_dir.front().back();
+
+    vector<int> equal_connect_comp_dire, equal_connect_comp_dire_grid_cnt;
+    // unordered_map<int,int> equal_connect_comp_dire_grid_cnt;//[方向，格子数量]
+    for (auto&& _feasible_dir : feasible_dir) {
+        if (_feasible_dir.back() == min_connect_comp) {
+            // 把方向送进去
+            int _dire = _feasible_dir.front();
+            equal_connect_comp_dire.push_back(_dire);
+            equal_connect_comp_dire_grid_cnt.push_back(GetGridCount({snake[0].front().first + dx[_dire], snake[0].front().first + dy[_dire]}));
+        }
+    }
+    // 把格子最多的方向弄出来
+    int max_grid_cnt = INT_MIN, max_grid_cnt_index = -1;
+    for (size_t i=0; i!=equal_connect_comp_dire_grid_cnt.size(); ++i) {
+        if (equal_connect_comp_dire_grid_cnt[i] >= max_grid_cnt) {//取最大值
+            max_grid_cnt = max(max_grid_cnt, equal_connect_comp_dire_grid_cnt[i]);
+            max_grid_cnt_index = i;
+        }
+    }
+    //
+    return max_grid_cnt_index;
 
     // return feasible_dir.begin()->second;
     // return this_round_connect_component ;
@@ -229,7 +272,7 @@ int main() {
 
     int decide_dir = FinalDecision();
 
-    // 随机做出一个决策
+    // 输出决策结果
     Json::Value ret;
     ret["response"]["direction"] = decide_dir;
 

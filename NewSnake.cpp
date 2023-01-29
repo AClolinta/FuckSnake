@@ -15,6 +15,7 @@ const int dy[4] = {0, 1, 0, -1};
 vector<vector<int>> game_map;      // 地图信息
 deque<pair<int, int>> snake[2];    // snake[0]表示自己的蛇，snake[1]表示对方的蛇
 vector<pair<int, int>> obstacles;  // 障碍物
+
 unordered_set<int> random_dir;
 vector<int> random_dir_arr;
 
@@ -171,16 +172,22 @@ vector<int> AvoidDeadEnds(vector<vector<int>>& feasible_dir) {  // 返回多个�
             grid_cnts.push_back({_dire, GetGridCount(next_node)});
         }
     }
-
-    int max_grid_cnt = INT_MIN, max_grid_cnt_index = -1;
+    vector<int> max_grid_cnt_index;
+    int max_grid_cnt = INT_MIN;
     for (size_t i = 0; i < grid_cnts.size(); ++i) {
-        if (grid_cnts[i][1] > max_grid_cnt) {
-            max_grid_cnt_index = grid_cnts[i][0];
-            max_grid_cnt       = max(max_grid_cnt, grid_cnts[i][1]);
+        if (grid_cnts[i][1] >= max_grid_cnt) {
+            // max_grid_cnt_index = grid_cnts[i][0];
+            max_grid_cnt = max(max_grid_cnt, grid_cnts[i][1]);
         }
     }
 
-    return {max_grid_cnt_index};
+    for (size_t i = 0; i < grid_cnts.size(); ++i) {
+        if (grid_cnts[i][1] == max_grid_cnt) {  // 格子相等
+            max_grid_cnt_index.push_back(grid_cnts[i][0]);
+        }
+    }
+
+    return max_grid_cnt_index;
 }
 
 void RemoveSnakeTail(int snake_id) {  // 删除蛇尾
@@ -227,7 +234,7 @@ int FinalDecision() {
     auto max_grid_cnt_index = AvoidDeadEnds(feasible_dir);
 
     //
-    return max_grid_cnt_index.front();
+    return max_grid_cnt_index[Random(100) % max_grid_cnt_index.size()];
 
     // return feasible_dir.begin()->second;
     // return this_round_connect_component ;
@@ -272,10 +279,10 @@ int main() {
     }
 
     // 根据历史信息恢复现场
-    int total = input["responses"].size();
+    int total_round = input["responses"].size();
 
     int recover_dire;
-    for (int i = 0; i < total; i++) {
+    for (int i = 0; i < total_round; i++) {
         recover_dire = input["responses"][i]["direction"].asInt();
         SnakeMove(0, recover_dire, i);
 
@@ -283,7 +290,7 @@ int main() {
         SnakeMove(1, recover_dire, i);
     }
 
-    if (!isGrow(total)) {  // 本回合两条蛇生长
+    if (!isGrow(total_round)) {  // 本回合两条蛇生长
         RemoveSnakeTail(0);
         RemoveSnakeTail(1);
     }
